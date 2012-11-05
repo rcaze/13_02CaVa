@@ -61,7 +61,7 @@ def qnext(qprev=0, reward=1, aR=0.1, aP=0.5):
 
 # The decision mechanisms
 
-def softmax(qval=[0.5,0.9], t=0.3):
+def softmax(qval=[0.5,0.9], t=1):
         '''
 
         Generate a softmax choice given a Q-value and a temperature parameter
@@ -111,19 +111,19 @@ def egreedy(qval=[0.5,0.9], pex = 0.01):
                 return rd.randint(0,len(qval)-1)
 
 # Default parameters
-dpvals = [[[0.1],[0.2]],[[0.8],[0.9]]]
+dpvals = [[[0.1],[0.15],[0.2]],[[0.8],[0.85],[0.9]]]
 dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
-dnep = 10
-dnit = 5
+dnep = 800
+dnit = 100
 dfch = softmax
-ddatdir = '/home/rcaze/Data/RL/'
-dfname = 'rebutbige.h5'
+ddatdir = '/home/rcaze/Data/BioCyb2012/'
+dfname = 'softmax3medium.h5'
 dfname = ddatdir + dfname
-ddatdirf='/home/rcaze/Figures/NIPS2012_1/'
+ddatdirf='/home/rcaze/Content/Figures/BioCyb2012/'
 dcolors = ('blue','green','red','violet')
 
 # Simulating a bandit task with obs.shape[2] iterations of obs.shape[1]  episodes of obs.shape[0] choices
-def btask(pval=dpvals[0], alpha=dagents[0], fch=dfch, nep=dnep, nit=dnit):
+def testbed(pval=dpvals[0], alpha=dagents[0] ,nep=dnep, nit=dnit, fch=dfch):
         '''
 
         Launch a multi-armed bandit task for an agent with two fix learning rates
@@ -141,7 +141,7 @@ def btask(pval=dpvals[0], alpha=dagents[0], fch=dfch, nep=dnep, nit=dnit):
         reca: an array recording the learning rates
 
         '''
-        obs = np.array([[gobs(cpval,dnep) for cpval in pval] for cit in range(dnit)])
+        obs = np.array([[gobs(cpval,nep) for cpval in pval] for cit in range(nit)])
 
         nit = obs.shape[0] #Parsing of obs to extract the number of iteration/episodes/choices
         nch = obs.shape[1]
@@ -170,10 +170,12 @@ def btask(pval=dpvals[0], alpha=dagents[0], fch=dfch, nep=dnep, nit=dnit):
                 recch[cit,cep] = choice
                 recq[cit,:,cep] = qest[:,cep]
                 reca[cit,:,cep] = [aR,aP]
-                if cep < nep-1: #Updating the q-values if not the last episodes
-                    qest[choice,cep+1] = qnext(qest[choice,cep],reward,aR,aP) 
+                if cep == nep-1: #Updating the q-values if not the last episodes
+                    break
+                qest[:,cep+1] = qest[:,cep] #Keep the same q
+                qest[choice,cep+1] = qnext(qest[choice,cep], reward, aR, aP) #Update from the reward and choice
 
-        return obs, recch, recq, reca
+        return recch, recq, reca, obs
 
 #Functions used for formal analysis plots
 
@@ -309,7 +311,7 @@ def testbedwrap(pvals=dpvals, agents=dagents, nep=dnep, nit=dnit, fname=dfname, 
         '''
         for pval in pvals: # Iterate through environments
                 for agent in agents: # Iterate through agents
-                        recch, recq, reca = testbed(pval, agent, nep, nit, fch)
+                        recch, recq, reca, obs = testbed(pval, agent, nep, nit, fch)
                         h5crec(recch, pval, agent, fname)
                         for i,p in enumerate(pval):
                                 h5qrec(recq[:,i,:], p, agent, fname)
@@ -417,7 +419,7 @@ def fig1(ps=[0.1,0.2,0.8,0.9], agents=dagents, fname=dfname, fnamef=ddatdirf + '
 def fig2a(pvals=dpvals, agents=dagents, fname=dfname, nep=dnep, fnamef=ddatdirf+'fig2a.svg'):
         '''
 
-        Generate the figure plotting the probability of switch or staying 2a for the NIPS article 
+        Generate the figure plotting the probability of taking the best option (weird behavior when more than 2 choices)
 
         '''
         choices = [[np.mean(h5cout(pvals[i], dagents[j],fname),axis=0) for j in range(len(agents))] for i in range(len(pvals))]
