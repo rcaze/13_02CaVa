@@ -1,5 +1,6 @@
 # This script is used to generate the figures of the NIPS 2012 article
 # Importing the necessary library
+from pdb import set_trace as flag
 import numpy as np # To compute and work with vectors
 import random as rd # To generate random choices
 import matplotlib.pyplot as plt # For plotting datas
@@ -17,7 +18,7 @@ from pdb import set_trace as flg
 def gobs(p=[0.8], nep=20):
         '''
 
-        Generate a set of observation from a binomial (or normal) distribution with parameters p (or p[0] and p[1]
+        Generate a set of observation from a binomial (or normal if p has two parameters) distribution with parameters p 
         
         PARAMETERS
         -----
@@ -112,93 +113,67 @@ def egreedy(qval=[0.5,0.9], pex = 0.01):
 # Default parameters
 dpvals = [[[0.1],[0.2]],[[0.8],[0.9]]]
 dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
-dnep = 800
-dnit = 5000
-dfch = egreedy
+dnep = 10
+dnit = 5
+dfch = softmax
 ddatdir = '/home/rcaze/Data/RL/'
 dfname = 'rebutbige.h5'
 dfname = ddatdir + dfname
 ddatdirf='/home/rcaze/Figures/NIPS2012_1/'
 dcolors = ('blue','green','red','violet')
 
-# Simulating a bandit task with n episodes
-def btask(pval=dpvals[0], alpha=dagents[0], nep=dnep, fch=dfch):
+# Simulating a bandit task with obs.shape[2] iterations of obs.shape[1]  episodes of obs.shape[0] choices
+def btask(pval=dpvals[0], alpha=dagents[0], fch=dfch, nep=dnep, nit=dnit):
         '''
 
-        Launch a multi-armed bandit task for an agent with fix learning rates
+        Launch a multi-armed bandit task for an agent with two fix learning rates
         
         PARAMETERS
         -----
-        pval: a list, the reward distribution parameters for each actions
-        alpha: a list, the two learning rates
-        nep: an integer, the number of episodes
+        obs: a list, the sequence of observations given the reward distribution parameters
+        alpha: a list, the two learning rates. If alpha is empty the learning rates are plastic
+        fch: the policy either softmax or e-greedy
 
         RETURNS
         ----
-        recch: a list of choice list, one for each iteration
-        recq: a list of qvalue list, one for each iteration
-        [aR, aP]: a couple of float, the final learning rate for reward and punishments
+        recch: an array recording the choice of the agent for each episode and each iteration
+        recq: an array recording the internal q-values of the agent 
+        reca: an array recording the learning rates
 
         '''
-        obs = np.array([gobs(cpval,nep) for cpval in pval]) #Generate the different arm outcome
-        qest = [0 for i in range(len(pval))] #Initialize Q value at 0
-        if alpha!=[]: #Assign the two learning rates 
+        obs = np.array([[gobs(cpval,dnep) for cpval in pval] for cit in range(dnit)])
+
+        nit = obs.shape[0] #Parsing of obs to extract the number of iteration/episodes/choices
+        nch = obs.shape[1]
+        nep = obs.shape[2]
+        recch = np.empty((nit,nep),np.int) #Initialize the record choice vector
+        recq = np.zeros((nit,nch,nep)) #Initialize the record q-value vector
+        reca = np.empty((nit,2,nep)) #Initialize the alpha of the agent
+        
+        for cit in range(nit):
+            if alpha!=[]: #Assign the two fix learning rates 
                 aR = alpha[0]
                 aP = alpha[1]
-        else: #Initialize the counting or Reward and Punishment
+            else: #Initialize the counting or Reward and Punishment
                 nR, nP = 1, 1
 
-        recch = range(nep) #Initialize the record choice vector
-        recq = range(nep) #Initialize the record q-value vector
-
-        for cep in range(nep):
-                recq[cep] = list(qest)
-                choice = fch(qest) #Choosing given the Q value
-                recch[cep] = choice
-                reward = obs[choice,cep]
+            qest = np.zeros((nch,nep)) #Initialize Q-values at 0
+            for cep in range(0,nep):
+                choice = fch(qest[:,cep]) #Choosing given the Q value
+                reward = obs[cit,choice,cep] #The precomputed reward
                 if alpha==[]:
-                        nR += reward==1
-                        nP += reward==-1
-                        aR = (cep+1-nR)/float((cep+1)*10)
-                        aP = (cep+1-nP)/float((cep+1)*10)
-                qest[choice] = qnext(qest[choice],reward,aR,aP) #Updating the Q values 
+                    nR += reward==1
+                    nP += reward==-1
+                    aR = (cep+1-nR)/float((cep+1)*10)
+                    aP = (cep+1-nP)/float((cep+1)*10)
 
-        recq = np.array(recq)
-        return np.array(recch), np.array([recq[:,0],recq[:,1]]), [aR, aP]
+                recch[cit,cep] = choice
+                recq[cit,:,cep] = qest[:,cep]
+                reca[cit,:,cep] = [aR,aP]
+                if cep < nep-1: #Updating the q-values if not the last episodes
+                    qest[choice,cep+1] = qnext(qest[choice,cep],reward,aR,aP) 
 
-def testbed(pval=dpvals[0], alpha=dagents[0], nep=dnep, nit=dnit, fch=dfch):
-        '''
-        
-        Run a testbed of bandit tasks for a given type of agent and a give type of environment
-        
-        PARAMETERS
-        -----
-        pval: a list of parameters for the reward distribution of each arm
-        nep: number of episodes
-        nit: number of iterations
-        aR: learning rate for reward
-        aP: learning rate for punishment
-        plas: a bool gating plastic or not learning rates
-
-        RETURNS
-        -----
-        recch: a list of choice list, one for each iteration
-        recq: a list of qvalue list, one for each iteration
-
-        EXAMPLES
-        -----
-        testbed([0.5,0.45], nep=100, nit=10, plas=True)
-
-        '''
-        recch = range(nit)
-        recq = range(nit)
-        reca = range(nit)
-        for i in range(nit):
-                ag = btask(pval, alpha, nep, fch)
-                recch[i] = ag[0]
-                recq[i] = ag[1]
-                reca[i] = ag[2]
-        return np.array(recch), np.array(recq), np.array(reca)
+        return obs, recch, recq, reca
 
 #Functions used for formal analysis plots
 
