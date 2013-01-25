@@ -1,14 +1,11 @@
-# This script is used to generate the figures of the NIPS 2012 article
+# This script is used to generate the figures of the BioCyb2012 article
 # Importing the necessary library
-from pdb import set_trace as flag
 import numpy as np # To compute and work with vectors
 import random as rd # To generate random choices
 import matplotlib.pyplot as plt # For plotting datas
 import h5py # For storing datas in hdf5 files
 from pylab import normpdf
 from pdb import set_trace as flg
- 
-
 
 
 # Core functions
@@ -61,7 +58,7 @@ def qnext(qprev=0, reward=1, aR=0.1, aP=0.5):
 
 # The decision mechanisms
 
-def softmax(qval=[0.5,0.9], t=1):
+def softmax(qval=[0.5,0.9], t=0.1):
         '''
 
         Generate a softmax choice given a Q-value and a temperature parameter
@@ -87,7 +84,13 @@ def softmax(qval=[0.5,0.9], t=1):
                         return choice
                 choice += 1
 
-def egreedy(qval=[0.5,0.9], pex = 0.01):
+def checkEqual(iterator):
+    '''
+    Test if the elements in a list are all identical
+    '''
+    return len(set(iterator)) <= 1
+
+def egreedy(qval=[0.5,0.9], pex = dpex):
         '''
 
         Generate an e-greedy choice given a Q-value and a temperature parameter
@@ -104,26 +107,26 @@ def egreedy(qval=[0.5,0.9], pex = 0.01):
         '''
         choice = 0
         rand = rd.random()
-        if rand > pex:
+        if rand > pex and not checkEqual(qval):
                 choice = np.argmax(qval)
                 return choice
         else:
                 return rd.randint(0,len(qval)-1)
 
 # Default parameters
-dpvals = [[[0.1],[0.15],[0.2]],[[0.8],[0.85],[0.9]]]
+dpvals = [[[0.1],[0.13],[0.16],[0.2]],[[0.8],[0.83],[0.86],[0.9]]]
 dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
 dnep = 800
-dnit = 100
+dnit = 5000
 dfch = softmax
 ddatdir = '/home/rcaze/Data/BioCyb2012/'
-dfname = 'softmax3medium.h5'
+dfname = 'sotfmax4bigHigh.h5'
 dfname = ddatdir + dfname
 ddatdirf='/home/rcaze/Content/Figures/BioCyb2012/'
 dcolors = ('blue','green','red','violet')
 
 # Simulating a bandit task with obs.shape[2] iterations of obs.shape[1]  episodes of obs.shape[0] choices
-def testbed(pval=dpvals[0], alpha=dagents[0] ,nep=dnep, nit=dnit, fch=dfch):
+def testbed(pval=dpvals[0], alpha=dagents[0] , nep=dnep, nit=dnit, fch=dfch):
         '''
 
         Launch a multi-armed bandit task for an agent with two fix learning rates
