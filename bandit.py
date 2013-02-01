@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt # For plotting datas
 import h5py # For storing datas in hdf5 files
 from pylab import normpdf
 from pdb import set_trace as flg
-
+import copy
 
 # Core functions
 
@@ -24,36 +24,38 @@ def gobs(p=[0.8], nep=20):
 
     RETURNS
     -----
-    A list of observations
+    A list of observations following a binomial or a normal distribution
 
     '''
     if len(p)==2:
         return np.random.normal(p[0],p[1],nep)
     return [1 if rd.random() < p[0] else -1 for i in range(nep)]
 
-def qnext(qprev=0, reward=1, aR=0.1, aP=0.5):
+def vqnext(qprev=np.array([[0.1,0.2],[0.3,0.4]]), alphas=np.array([[0.1,0.2],[0.3,0.4]]), choice=np.array([0,1]), ob=np.array([1,-1])):
     '''
 
-    Update a Q value given a distinct learning rate for reward and punishment
+    Update Q-values of n agents depending on the learning rate of each agent. It is a vectorized functions
 
     PARAMETERS
     -----
-    qprev: a list of 1 and -1, reward and punishment
-    reward: an integer, the reward
-    aR: a real number the learning rate for reward
-    aP: a real number the learning rate for punishment
+    qprev: a list of list, number of choices * number of agents
+    alphas: a list of list, two learning rates * number of agents
+    choices: a list, the choices of all agents
+    ob: a list, the observation for each agent
 
     RETURNS
     ----
-    Qnext: an estimation of the Q-value given
+    qnext: the updated q-values for all agents
 
     '''
+    qnext = np.array(qprev)
+    nagents = qprev.shape[0]
+    dim = np.arange(nagents) #use for the fancy indexing
 
-    if reward >= qprev:
-        qnext = qprev + aR * ( reward - qprev )
-    else:
-        qnext = qprev + aP * ( reward - qprev )
-
+    comparison = ob <= qprev[dim,choice] #Creating an array to determine the chosen alpha
+    alphas = alphas[dim,comparison.astype(np.int)] #Selecting the set of alphas for the different agents
+    update = alphas * (ob - qprev[dim,choice]) #Adding the update
+    qnext[dim,choice] = qprev[dim,choice] + update #Computing the selected new q value
     return qnext
 
 # The decision mechanisms
@@ -89,6 +91,8 @@ def checkEqual(iterator):
     Test if the elements in a list are all identical
     '''
     return len(set(iterator)) <= 1
+
+dpex=0.1
 
 def egreedy(qval=[0.5,0.9], pex = dpex):
     '''
@@ -126,15 +130,16 @@ ddatdirf='/home/rcaze/Content/Figures/BioCyb2012/'
 dcolors = ('blue','green','red','violet')
 
 # Simulating a bandit task with obs.shape[2] iterations of obs.shape[1]  episodes of obs.shape[0] choices
-def testbed(pval=dpvals[0], alpha=dagents[0] , nep=dnep, nit=dnit, fch=dfch):
+def testbed(pval=dpvals[0], alpha=dagents[0], nep=dnep, nit=dnit, fch=dfch):
     '''
-
-    Launch a multi-armed bandit task for an agent with two fix learning rates
+    Launch a multi-armed bandit task for an agent with two learning rates fix or plastic
 
     PARAMETERS
     -----
-    obs: a list, the sequence of observations given the reward distribution parameters
-    alpha: a list, the two learning rates. If alpha is empty the learning rates are plastic
+    pval: a list, the parameters of the probability distribution governing the reward distribution
+    alpha: a list, the two learning rates. If alpha is empty the learning rates are plastic.
+    nep: the number of episodes during one trial
+    nit: the number of iterations/agents which are launch simultaneously on a given task
     fch: the policy either softmax or e-greedy
 
     RETURNS
