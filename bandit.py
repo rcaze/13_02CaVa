@@ -118,7 +118,7 @@ def egreedy(qval=[0.5,0.9], pex = dpex):
         return rd.randint(0,len(qval)-1)
 
 # Default parameters
-dpvals = [[[0.1],[0.13],[0.16],[0.2]],[[0.8],[0.83],[0.86],[0.9]]]
+dpvals = [[[0.1],[0.2]],[[0.8],[0.9]]]
 dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
 dnep = 800
 dnit = 5000
