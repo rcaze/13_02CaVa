@@ -65,7 +65,7 @@ figdir='/home/rcaze/Content/Figures/BioCyb2013/'
 dpvals = [[0.1,0.2],[0.8,0.9]]
 dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
 dnep = 800
-dnit = 200
+dnit = 140
 dtemp = 0.3
 dcolors = ('blue','green','red','violet')
 dobs = gobs(dpvals[1], dnep, dnit)
@@ -176,8 +176,8 @@ def testbed(obs=dobs, alpha=dagents[0], fch=dfch):
                 if alpha == []: #Case of two plastic learning rate
                     nR += reward==1
                     nP += reward==-1
-                    aP = nR/float(nR+nP)
-                    aR = nP/float(nR+nP)
+                    aP = (nR/float(nR+nP))/10
+                    aR = (nP/float(nR+nP))/10
 
                 qest[choice] = qnext(qest[choice], reward, aR, aP) #Update from the reward and choice
                 recch[cit, cep+1] = choice
