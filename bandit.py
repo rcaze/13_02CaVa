@@ -62,10 +62,10 @@ datadir = '/home/rcaze/Data/BioCyb2013/'
 figdir='/home/rcaze/Content/Figures/BioCyb2013/'
 
 # Default parameters
-dpvals = [[0.1,0.2],[0.8,0.9]]
-dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
-dnep = 800
-dnit = 140
+dpvals = [[0.1, 0.11, 0.12, 0.13, 0.14, 0.16, 0.17, 0.18, 0.19, 0.2],[0.8, 0.81, 0.82, 0.83, 0.84, 0.86, 0.87, 0.88, 0.89, 0.9]]
+dagents = [[0.4,0.4],[0.4,0.1],[0.1,0.4],[]]
+dnep = 1000
+dnit = 100
 dtemp = 0.3
 dcolors = ('blue','green','red','violet')
 dobs = gobs(dpvals[1], dnep, dnit)
@@ -129,7 +129,7 @@ def softmax(qval=[0.5,0.9], temp=dtemp):
 
 dfch = softmax
 if dfch == softmax:
-    dfname = 'nband%d_nep%d_nit%d_sofmax_temp%d.h5' %(len(dpvals[0]), dnep, dnit, dtemp)
+    dfname = 'nband%d_nep%d_nit%d_temp%d.h5' %(len(dpvals[0]), dnep, dnit, dtemp*10)
 else:
     dfname = 'nband%d_nep%d_nit%d_egreedy_e%d.h5' %(len(dpvals[0]), dnep, dnit, dpex)
 
@@ -137,18 +137,17 @@ def testbed(obs=dobs, alpha=dagents[0], fch=dfch):
     """
     Launch a testbed determined by the obs array for an agent with one or two fix or plastic learning rates
 
-        PARAMETERS
-        -----
-        obs: an array of observation correponding to the outcome of a choice
-        alpha: a list, the two learning rates. If alpha is empty the learning rates are plastic
-        fch: a function, the choice function softmax or egreedy
+    PARAMETERS
+    -----
+    obs: an array of observation correponding to the outcome of a choice
+    alpha: a list, the two learning rates. If alpha is empty the learning rates are plastic
+    fch: a function, the choice function softmax or egreedy
 
-        RETURNS
-        ----
-        recch: an array recording the choice of the agent for each episode and each iteration
-        recq: an array recording the internal q-values of the agent
-        reca: an array recording the learning rates
-
+    RETURNS
+    -------
+    recch: an array recording the choice of the agent for each episode and each iteration
+    recq: an array recording the internal q-values of the agent
+    reca: an array recording the learning rates
     """
     nit = obs.shape[0] #Parsing of obs to extract the number of iteration/episodes/choices
     nch = obs.shape[1]
@@ -229,6 +228,31 @@ def xopt(pval=[0.8,0.9]):
 
 
 #Handle function to record data
+
+class DataBandit(object):
+    def __init__(self, nit, nep, pval):
+        self.nit = nit
+        self.nep = nep
+        self.pval = pval
+        self.name = self._set_name()
+
+    def _set_name(self):
+        return 'nband{}_nep{}_nit{}.h5'.format(len(self.pval), self.nep, self.nit)
+
+    def add_data(self, Testbed):
+        with h5py.File(self.name, 'a') as hdf:
+            hdf.create_dataset(Testbed.name, data=Testbed.data)
+
+    def extract_data(self, Testbed, Agent):
+        with h5py.File(self.name, 'r') as hdf:
+            hdf[Testbed.name]
+
+    def show(self, save=False):
+        """
+        Plot the probability of picking the best option
+        """
+        plt.plot(self.choice==len(self.pval))
+
 
 def h5name(pval=dpvals[0], alpha=dagents[0]):
         '''
@@ -381,7 +405,7 @@ def rspines(ax,places=['right','top']):
         ax.yaxis.set_ticks_position('left')
 
 #Each functions correspond to a figure (Need to run simulations before)
-def fig1(pvals=[[0.1,0.2],[0.8,0.9]], agents=[[0.4,0.1], [0.1,0.1], [0.4,0.1]], fname=dfname, fnamef='Fig1t.svg'):
+def fig1(pvals=[[0.1,0.2],[0.8,0.9]], agents=[[0.4,0.1], [0.1,0.1], [0.1,0.4]], fname=dfname, fnamef='Fig1.svg'):
         '''
         Generate a figure of the final Q estimates for the three different types of agents
 
