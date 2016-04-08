@@ -1,11 +1,12 @@
-# This script is used to generate the figures for the first submission to BioCyb 2013 article
+"""This script is used to generate the figures
+for the first submission to BioCyb 2013 article"""
+
 
 # Importing the necessary libraries, numpy, matplotlib, h5py, and random
-import numpy as np # To compute and work with vectors
-import random as rd # To generate random choices
-import matplotlib.pyplot as plt # For plotting datas
-import h5py # For storing datas in hdf5 files
-from pdb import set_trace as flg
+import numpy as np
+import random as rd
+import matplotlib.pyplot as plt
+import h5py
 
 # Core functions
 
@@ -62,14 +63,14 @@ datadir = '/home/rcaze/Data/BioCyb2013/'
 figdir='/home/rcaze/Content/Figures/BioCyb2013/'
 
 # Default parameters
-dpvals = [[0.1, 0.11, 0.12, 0.13, 0.14, 0.16, 0.17, 0.18, 0.19, 0.2],[0.8, 0.81, 0.82, 0.83, 0.84, 0.86, 0.87, 0.88, 0.89, 0.9]]
-dagents = [[0.4,0.4],[0.4,0.1],[0.1,0.4],[]]
+dpvals = [[0.1, 0.2],[0.8, 0.9]]
+dagents = [[0.1,0.1],[0.4,0.1],[0.1,0.4],[]]
 dnep = 1000
-dnit = 100
+dnit = 500
 dtemp = 0.3
 dcolors = ('blue','green','red','violet')
 dobs = gobs(dpvals[1], dnep, dnit)
-dpex = 0.1
+dpex = 0.3
 
 def checkEqual(iterator):
     """
@@ -131,7 +132,7 @@ dfch = softmax
 if dfch == softmax:
     dfname = 'nband%d_nep%d_nit%d_temp%d.h5' %(len(dpvals[0]), dnep, dnit, dtemp*10)
 else:
-    dfname = 'nband%d_nep%d_nit%d_egreedy_e%d.h5' %(len(dpvals[0]), dnep, dnit, dpex)
+    dfname = 'nband%d_nep%d_nit%d_egreedy_e%d.h5' %(len(dpvals[0]), dnep, dnit, dpex*100)
 
 def testbed(obs=dobs, alpha=dagents[0], fch=dfch):
     """
@@ -162,7 +163,7 @@ def testbed(obs=dobs, alpha=dagents[0], fch=dfch):
             aR = alpha[0]
             aP = alpha[1]
         else: #Case of one or two fix learning rate
-            nR, nP = 0, 0
+            nR, nP = 1, 1
 
         qest = np.zeros(nch) #Initialize Q-values at 0
         for cep in range(0,nep):
@@ -246,12 +247,6 @@ class DataBandit(object):
     def extract_data(self, Testbed, Agent):
         with h5py.File(self.name, 'r') as hdf:
             hdf[Testbed.name]
-
-    def show(self, save=False):
-        """
-        Plot the probability of picking the best option
-        """
-        plt.plot(self.choice==len(self.pval))
 
 
 def h5name(pval=dpvals[0], alpha=dagents[0]):
@@ -439,7 +434,7 @@ def fig1(pvals=[[0.1,0.2],[0.8,0.9]], agents=[[0.4,0.1], [0.1,0.1], [0.1,0.4]], 
         plt.ylim(-1,1)
         plt.savefig(fnamef,transparent=True)
 
-def fig2a(pvals=dpvals, agents=dagents, fname=dfname, fnamef='Fig2a.svg'):
+def fig2a(pvals=dpvals, agents=dagents, fname=dfname, xticks=(0,0.5,1), fnamef='Fig2a.svg'):
         '''
 
         Generate the figure plotting the probability of taking the best option
@@ -468,8 +463,10 @@ def fig2a(pvals=dpvals, agents=dagents, fname=dfname, fnamef='Fig2a.svg'):
                 plt.plot(choices[0][i],color=dcolors[i])
 
         ax.set_title('Low reward',size=10)
-        ax.set_ylabel('P(Best Choice)',size=10)
+        ax.set_ylabel('P(A)',size=10)
         ax.set_xlim(0,dnep)
+        ax.set_xticks((200,800))
+        ax.set_yticks(xticks)
         ax.set_xlabel('Episodes',size=10)
         rspines(ax)
 
@@ -479,8 +476,12 @@ def fig2a(pvals=dpvals, agents=dagents, fname=dfname, fnamef='Fig2a.svg'):
 
         ax.set_title('High reward',size=10)
         ax.set_xlim(0,dnep)
+        ax.set_xticks((200,800))
+        ax.set_yticks(xticks)
+        ax.set_yticks(())
         ax.set_xlabel('Episodes',size=10)
-        rspines(ax)
+        rspines(ax, ['left','right','top'])
+        plt.tight_layout()
         plt.savefig(figdir + fnamef,transparent=True)
         return np.array(choices)
 
